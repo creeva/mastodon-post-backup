@@ -22,6 +22,7 @@
 #
 import glob
 import os
+from dotenv import load_dotenv
 from mastodon import Mastodon
 #
 ###############################################################################
@@ -30,9 +31,10 @@ from mastodon import Mastodon
 #
 # Mastodon Connection Information
 #
-access_token='APIACCESSTOKENGOESHERE'
-api_base_url= 'SERVERURLGOESHERE'
-mastodon = Mastodon(access_token=f'{access_token}', api_base_url=f'{api_base_url}')
+load_dotenv()
+MASTODON_TOKEN = os.getenv('MASTODON_TOKEN')
+MASTODON_BASE = os.getenv('MASTODON_BASE')
+mastodon = Mastodon(access_token=MASTODON_TOKEN, api_base_url=MASTODON_BASE)
 # Mastodon Information
 userid = mastodon.account_verify_credentials()['id']
 avatar = mastodon.account_verify_credentials()['avatar']
@@ -54,8 +56,9 @@ username = mastodon.account_verify_credentials()['username']
 # Mastodon Post Info
 all_posts = []
 max_id = None
-api_base_url = api_base_url.replace('https://', '')
+api_base_url = MASTODON_BASE.replace('https://', '')
 api_base_url = api_base_url.replace('http://', '')
+userfile = f'{username}_{api_base_url}'
 #
 ###############################################################################
 # Main Script Start                                                           #
@@ -65,24 +68,22 @@ api_base_url = api_base_url.replace('http://', '')
 #
 if not glob.glob('socialposts'): os.makedirs('socialposts')
 if not glob.glob('socialreports'): os.makedirs('socialreports')
-if glob.glob(f'socialposts/mastodon-{username}-{api_base_url}-posts.txt'): os.remove(f'socialposts/mastodon-{username}-{api_base_url}-posts.txt')
-if glob.glob(f'socialreports/mastodon-{username}-{api_base_url}-report.txt'): os.remove(f'socialreports/mastodon-{username}-{api_base_url}-report.txt')
+if glob.glob(f'socialposts/mastodon-{userfile}-posts.txt'): os.remove(f'socialposts/mastodon-{username}-{api_base_url}-posts.txt')
+if glob.glob(f'socialreports/mastodon-{userfile}-report.txt'): os.remove(f'socialreports/mastodon-{username}-{api_base_url}-report.txt')
 # Loop to retrieve all posts, handling pagination
 while True:
-    posts = mastodon.account_statuses(userid, limit=40, max_id=max_id)
-    if not posts:
-        break 
+    posts = mastodon.account_statuses(userid, limit=100, max_id=max_id)
+    if not posts: break 
     all_posts.extend(posts)
     max_id = posts[-1]['id'] - 1
 # Process or save the retrieved posts (e.g., save to a file)
 for post in all_posts:
-    postfile = f'socialposts/mastodon-{username}-{api_base_url}-posts.txt'
-    with open(postfile, mode='a', encoding='utf8') as infile: 
-        infile.write(f"\n{post['created_at']}   --   MASTODON   --   {username}   --   {api_base_url}   --   {post['id']}   --   {post['content']}")
+    postfile = f'socialposts/mastodon-{userfile}-posts.txt'
+    with open(postfile, mode='a', encoding='utf8') as infile: infile.write(f"\n{post['created_at']}   --   MASTODON   --   POST   --   {post['content']}")
 # Account Report
 reportfile = f'socialreports/mastodon-{username}-{api_base_url}-report.txt'
 with open(reportfile, mode='a', encoding='utf8') as infile: 
-    infile.write('\nMastadon Account Report\n\n')
+    infile.write(f'\nMastadon Account Report\n\n')
     infile.write(f'\nUsername          : {username}')
     infile.write(f'\nDisplay Name      : {displayname}')
     infile.write(f'\nMastadon Server   : {api_base_url}')
